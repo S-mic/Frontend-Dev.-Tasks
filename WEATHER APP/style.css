@@ -11,12 +11,12 @@ body
     justify-content: center;
     align-items: center;
     min-height: 90vh;
-    background-color: rgb(43, 29, 29);
+    background-color: grey;
     font-family: 'Roboto', sans-serif;
  
 }
 
-.conatiner
+.container
 {
     background: linear-gradient(135deg, #00feba,#5b548a);
 
@@ -25,7 +25,7 @@ body
     border-radius: 20px;
 }
 
-.searchbox
+.searchbox 
 {
     display: flex;
     margin: 20px 60px;
