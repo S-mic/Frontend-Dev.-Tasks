@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>YouTube Clone </title>
+<style>
+  :root{
+    --bg:#0f0f0f;
+    --card:#181818;
+    --text:#f1f1f1;
+    --muted:#aaaaaa;
+    --pill:#272727;
+    --accent:#3ea6ff;
+    --border:#2a2a2a;
+  }
+  :root.light{
+    --bg:#ffffff;
+    --card:#f7f7f7;
+    --text:#0f0f0f;
+    --muted:#606060;
+    --pill:#efefef;
+    --accent:#065fd4;
+    --border:#e5e5e5;
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font:14px/1.3 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";
+  }
+
+  /* Header */
+  .header{
+    position:sticky; top:0; z-index:50;
+    display:flex; align-items:center; gap:12px;
+    height:56px; padding:0 16px;
+    background:var(--bg); border-bottom:1px solid var(--border);
+  }
+  .iconbtn{
+    width:40px; height:40px; border-radius:20px;
+    display:grid; place-items:center; cursor:pointer; border:0; background:transparent; color:var(--text);
+  }
+  .iconbtn:hover{ background:var(--pill) }
+  .brand{ display:flex; align-items:center; gap:8px; min-width:0 }
+  .brand svg{ width:28px; height:28px }
+  .brand .name{ font-weight:700; letter-spacing:-.2px; white-space:nowrap }
+  .spacer{ flex:1 }
+
+  .searchbar{
+    display:flex; align-items:center; gap:0;
+    max-width:720px; flex:1;
+  }
+  .searchbar input{
+    flex:1; height:40px; padding:0 12px; border:1px solid var(--border);
+    background:var(--bg); color:var(--text); border-right:0; border-radius:20px 0 0 20px;
+    outline:none;
+  }
+  .searchbar .go{
+    height:40px; width:64px; border:1px solid var(--border);
+    border-left:0; border-radius:0 20px 20px 0; background:var(--pill); color:var(--text); cursor:pointer;
+  }
+  .mic{ display:none }
+  @media (min-width:640px){ .mic{ display:grid } }
+
+  /* Layout */
+  .app{ display:grid; grid-template-columns: 72px 1fr; }
+  .sidebar{
+    position:sticky; top:56px; height:calc(100dvh - 56px);
+    padding:12px 8px; overflow:auto; border-right:1px solid var(--border);
+    background:var(--bg);
+  }
+  .side-section{ display:grid; gap:4px; margin-bottom:12px }
+  .side-link{
+    display:flex; align-items:center; gap:12px;
+    padding:10px 12px; border-radius:10px; color:var(--text); text-decoration:none;
+  }
+  .side-link:hover{ background:var(--pill) }
+  .side-link span{ font-size:12px }
+
+  .content{ min-width:0 }
+
+  /* Categories */
+  .cats{
+    position:sticky; top:56px; z-index:40;
+    display:flex; gap:8px; padding:12px 16px; overflow:auto; background:var(--bg); border-bottom:1px solid var(--border);
+  }
+  .pill{
+    padding:8px 12px; border-radius:8px; background:var(--pill); color:var(--text);
+    white-space:nowrap; cursor:pointer; user-select:none; border:1px solid transparent;
+    flex:0 0 auto;
+  }
+  .pill.active{ background:var(--text); color:var(--bg) }
+  .pill:hover{ border-color:var(--border) }
+
+  /* Grid */
+  .grid{
+    padding:16px;
+    display:grid; gap:16px;
+    grid-template-columns: repeat(1, minmax(0,1fr));
+  }
+  @media (min-width:540px){ .grid{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
+  @media (min-width:900px){ .grid{ grid-template-columns: repeat(3, minmax(0,1fr)); } }
+  @media (min-width:1200px){ .grid{ grid-template-columns: repeat(4, minmax(0,1fr)); } }
+
+  .card{ display:grid; gap:10px }
+  .thumb{
+    aspect-ratio:16/9; width:100%; border-radius:12px; overflow:hidden; background:#222; position:relative;
+  }
+  .thumb .img{
+    width:100%; height:100%; display:block;
+    background:linear-gradient(135deg,#323232,#1b1b1b);
+  }
+  .badge{
+    position:absolute; right:8px; bottom:8px; padding:2px 6px; border-radius:4px;
+    background:rgba(0,0,0,.8); color:#fff; font-size:12px;
+  }
+  .meta{ display:grid; grid-template-columns:40px 1fr; gap:10px }
+  .avatar{
+    width:40px; height:40px; border-radius:20px; background:linear-gradient(135deg,#666,#333); border:1px solid var(--border);
+  }
+  .title{ font-weight:600; line-height:1.2 }
+  .sub{ color:var(--muted); font-size:13px }
+
+  /* Collapsed sidebar */
+  .collapsed .sidebar{ width:72px }
+  .collapsed .side-link span{ display:none }
+  .collapsed .app{ grid-template-columns:72px 1fr }
+
+  /* Hidden sidebar (mobile) */
+  @media (max-width: 920px){
+    .app{ grid-template-columns: 0 1fr }
+    .sidebar{ display:none }
+    .app.show-side .sidebar{ display:block; width:240px; position:fixed; left:0; top:56px; height:calc(100dvh - 56px); box-shadow:0 10px 30px rgba(0,0,0,.4) }
+    .app.show-side::after{
+      content:""; position:fixed; inset:56px 0 0 0; background:rgba(0,0,0,.4);
+    }
+  }
+
+  /* Tooltips (simple) */
+  [data-tip]{ position:relative }
+  [data-tip]:hover::after{
+    content:attr(data-tip);
+    position:absolute; top:calc(100% + 6px); left:50%; transform:translateX(-50%);
+    background:rgba(0,0,0,.85); color:#fff; font-size:12px; padding:6px 8px; border-radius:6px; white-space:nowrap; pointer-events:none;
+  }
+
+  /* Footer note */
+  .foot{ padding:24px; color:var(--muted); text-align:center }
+</style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <button class="iconbtn" id="menuBtn" aria-label="Toggle sidebar" data-tip="Toggle sidebar (B)">
+      <!-- menu icon -->
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </button>
+
+    <div class="brand">
+      <!-- play logo -->
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M10 8.64v6.72L15.27 12 10 8.64zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
+      </svg>
+      <div class="name">YouTube</div>
+    </div>
+
+    <div class="spacer"></div>
+
+    <form class="searchbar" onsubmit="return false;">
+      <input id="searchInput" placeholder="Search" aria-label="Search" />
+      <button class="go" id="searchBtn" aria-label="Search">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+      </button>
+    </form>
+
+    <button class="iconbtn mic" aria-label="Voice search" data-tip="Voice search">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 14a3 3 0 003-3V6a3 3 0 10-6 0v5a3 3 0 003 3zm5-3a5 5 0 01-10 0H5a7 7 0 0014 0h-2zM11 18.92V22h2v-3.08A8.01 8.01 0 0020 11h-2a6 6 0 11-12 0H4a8.01 8.01 0 007 7.92z"/></svg>
+    </button>
+
+    <button class="iconbtn" id="themeBtn" aria-label="Toggle theme" data-tip="Toggle theme (T)">
+      <svg id="themeIcon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+        <path d="M12 3a9 9 0 108.94 7.58A7 7 0 0112 3z"/>
+      </svg>
+    </button>
+  </header>
+
+  <div class="cats" id="cats"></div>
+
+  <main class="app collapsed" id="app">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar" aria-label="Sidebar">
+      <nav class="side-section">
+        <a href="#" class="side-link"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8"/></svg><span>Home</span></a>
+        <a href="#" class="side-link"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.9-2.2 4.9-4.9S14.7 2.2 12 2.2 7.1 4.4 7.1 7.1 9.3 12 12 12zm0 2.4C8.8 14.4 2 16 2 19.2V22h20v-2.8c0-3.2-6.8-4.8-10-4.8z"/></svg><span>Subscriptions</span></a>
+        <a href="#" class="side-link"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M10 16.5l6-4.5-6-4.5v9zM12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2z"/></svg><span>Shorts</span></a>
+        <a href="#" class="side-link"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M10 8h11v2H10V8zm0 4h11v2H10v-2zm0 4h11v2H10v-2zM3 8h5v12H3z"/></svg><span>Library</span></a>
+      </nav>
+    </aside>
+
+    <!-- Main content -->
+    <section class="content">
+      <div class="grid" id="grid"></div>
+      <div class="foot">Demo project for learning (no external assets needed). Keyboard: <b>T</b> theme, <b>B</b> sidebar, <b>/</b> focus search.</div>
+    </section>
+  </main>
+
+<script>
+  // --- Data (fake content) ---
+  const CATEGORIES = ["All","Music","Gaming","Coding","Live","Mixes","News","Comedy","Sports","Podcasts","Trailers","AI","Tutorials","Documentary","Travel","Food"];
+  const VIDEOS = Array.from({length:24}).map((_,i)=>({
+    id: i+1,
+    title: [
+      "Learn HTML & CSS Fast","JavaScript Tips & Tricks","Build a Responsive Layout",
+      "Dark Mode in 60 Seconds","Async JS Crash Course","Top 10 VS Code Extensions",
+      "Design a Landing Page","Grid vs Flexbox","Deploy a Static Site",
+      "APIs for Beginners","Make a Navbar Sticky","Accessibility Basics",
+      "CSS Animations Guide","Node.js Project Setup","UI Components from Scratch",
+      "React State Patterns","TypeScript Essentials","Free Icons & Assets",
+      "Testing Like a Pro","Clean Code Mindset","CLI Tools You Need",
+      "Database Basics","Debugging Workflow","Productivity for Devs"
+    ][i],
+    channel: ["CodingNepal","DevHub","FrontendFuel","CodeCafe","PixelLogic","JS Daily"][i%6],
+    views: (Math.floor(Math.random()*900)+100)+"K views",
+    age: (Math.floor(Math.random()*11)+1)+" months ago",
+    duration: ["8:12","12:45","4:05","9:58","16:22","6:31"][i%6],
+    category: CATEGORIES[(i% (CATEGORIES.length-1))+1]
+  }));
+
+  // --- Elements ---
+  const app = document.getElementById('app');
+  const cats = document.getElementById('cats');
+  const grid = document.getElementById('grid');
+  const themeBtn = document.getElementById('themeBtn');
+  const menuBtn = document.getElementById('menuBtn');
+  const searchInput = document.getElementById('searchInput');
+  const searchBtn = document.getElementById('searchBtn');
+
+  // --- Theme ---
+  const applyTheme = (mode) => {
+    document.documentElement.classList.toggle('light', mode === 'light');
+    localStorage.setItem('yt-theme', mode);
+  };
+  const savedTheme = localStorage.getItem('yt-theme') || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  applyTheme(savedTheme);
+  themeBtn.addEventListener('click', ()=> applyTheme(document.documentElement.classList.contains('light') ? 'dark':'light'));
+
+  // --- Sidebar toggle ---
+  let sideOpenMobile = false;
+  const isMobile = ()=> matchMedia('(max-width: 920px)').matches;
+  const toggleSidebar = ()=>{
+    if (isMobile()){
+      sideOpenMobile = !sideOpenMobile;
+      app.classList.toggle('show-side', sideOpenMobile);
+    } else {
+      app.classList.toggle('collapsed');
+    }
+  };
+  menuBtn.addEventListener('click', toggleSidebar);
+
+  // Close mobile side on overlay click
+  document.addEventListener('click', (e)=>{
+    if (!isMobile()) return;
+    if (sideOpenMobile && !document.getElementById('sidebar').contains(e.target) && !menuBtn.contains(e.target)){
+      sideOpenMobile = false;
+      app.classList.remove('show-side');
+    }
+  });
+
+  // --- Categories ---
+  let activeCat = "All";
+  function renderCats(){
+    cats.innerHTML = "";
+    CATEGORIES.forEach(c=>{
+      const b = document.createElement('button');
+      b.className = 'pill' + (c===activeCat ? ' active':'');
+      b.textContent = c;
+      b.addEventListener('click', ()=>{
+        activeCat = c;
+        renderCats();
+        renderGrid();
+      });
+      cats.appendChild(b);
+    });
+  }
+
+  // --- Grid ---
+  function makeCard(v){
+    const card = document.createElement('article');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="thumb" role="img" aria-label="${v.title}">
+        <div class="img"></div>
+        <div class="badge">${v.duration}</div>
+      </div>
+      <div class="meta">
+        <div class="avatar" aria-hidden="true"></div>
+        <div>
+          <div class="title">${v.title}</div>
+          <div class="sub">${v.channel} • ${v.views} • ${v.age}</div>
+        </div>
+      </div>
+    `;
+    return card;
+  }
+
+  function renderGrid(query=""){
+    const q = query.trim().toLowerCase();
+    const filtered = VIDEOS.filter(v=>{
+      const byCat = activeCat==="All" || v.category===activeCat;
+      const byQuery = !q || (v.title.toLowerCase().includes(q) || v.channel.toLowerCase().includes(q));
+      return byCat && byQuery;
+    });
+    grid.innerHTML = "";
+    filtered.forEach(v=> grid.appendChild(makeCard(v)));
+    if (!filtered.length){
+      const empty = document.createElement('div');
+      empty.style.color = 'var(--muted)';
+      empty.textContent = "No results. Try a different search or category.";
+      grid.appendChild(empty);
+    }
+  }
+
+  // --- Search ---
+  function doSearch(){
+    renderGrid(searchInput.value);
+  }
+  searchBtn.addEventListener('click', doSearch);
+  searchInput.addEventListener('keydown', e=>{
+    if (e.key === 'Enter') doSearch();
+  });
+
+  // --- Keyboard shortcuts ---
+  document.addEventListener('keydown', (e)=>{
+    if (e.key.toLowerCase() === 't') themeBtn.click();
+    if (e.key.toLowerCase() === 'b') toggleSidebar();
+    if (e.key === '/' && document.activeElement !== searchInput){
+      e.preventDefault(); searchInput.focus();
+    }
+  });
+
+  // Init
+  renderCats();
+  renderGrid();
+</script>
+</body>
+</html>
